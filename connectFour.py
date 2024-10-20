@@ -1,3 +1,5 @@
+#Raul Pallares & Angel Aguayo PA2
+
 import sys
 import random
 
