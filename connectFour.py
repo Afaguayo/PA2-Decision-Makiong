@@ -70,37 +70,19 @@ def main():
 
     algorithm, current_player, board = read_board(input_file)
     game = ConnectFour(board, current_player)
+    
+    if algorithm == 'UR':
+        print("UR")
+        move = random_move_selection(game)
+        num_simulations = 0
+    elif algorithm == 'PMCGS':
+        print("PMCGS")
+        
+        return
+    elif algorithm == 'UCT':
+        print('UCT')
 
-    print(f"Starting Player: {current_player}")
-    print("Initial Board:")
-    for row in board:
-        print(''.join(row))
-
-    while True:
-        if algorithm == 'Random' or algorithm == 'UR':
-            move = random_move_selection(game)
-        else:
-            print("Unknown algorithm specified.")
-            return
-
-        if verbosity == 'Verbose':
-            print(f"Player {game.current_player} chose move: {move + 1}")
-
-        game.make_move(move, game.current_player)
-
-        if verbosity != 'None':
-            for row in game.board:
-                print(''.join(row))
-            print()
-
-        if game.check_win():
-            print(f"Player {game.current_player} wins!")
-            break
-        elif game.is_draw():
-            print("The game is a draw!")
-            break
-
-        game.current_player = 'Y' if game.current_player == 'R' else 'R'
+    print(f"FINAL Move selected: {move + 1}")
 
 if __name__ == "__main__":
     main()
