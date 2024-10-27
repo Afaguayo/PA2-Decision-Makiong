@@ -1,7 +1,10 @@
 #Raul Pallares & Angel Aguayo & Natasha Rovelli PA2
 
+from collections import defaultdict
 import sys
 import random
+import math
+from UCT import UCTree
 
 class ConnectFour:
     def __init__(self, board, current_player):
@@ -132,11 +135,10 @@ def monte_carlo_search(game, num_simulations, verbosity):
             print(f"Column {col + 1}: {scores[col]}")
     print(f"FINAL Move selected: {best_move + 1}")
 
-    
 
-def uct(game):
-    pass
+def uct(game, UCT, numSimulation, current_player, verbosity):
 
+    return UCT.rollout(game, numSimulation, current_player, verbosity)
 
 
 def main():
@@ -160,8 +162,9 @@ def main():
         move = monte_carlo_search(game, num_simulations, verbosity)
     elif algorithm == 'UCT':
         print('UCT')
-        move = uct(game)
-
+        UCT = UCTree()
+        move = uct(game, UCT, num_simulations, current_player, verbosity)
+        print(f"FINAL Move selected: {move + 1}")
 
 if __name__ == "__main__":
     main()
