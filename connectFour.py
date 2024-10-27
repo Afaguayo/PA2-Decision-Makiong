@@ -210,7 +210,68 @@ def uct(game, numSimulation, current_player, verbosity= "Verbose", c=math.sqrt(2
     # Return best move 
     return bestMove
 
+
+def run_tournament(algorithms, num_games):
+    results = {algo.__name__: 0 for algo in algorithms}
+
+    for i in range(len(algorithms)):
+        for j in range(len(algorithms)):
+            if i != j:
+                algo1 = algorithms[i]
+                algo2 = algorithms[j]
+                print(f"Testing {algo1.__name__} vs {algo2.__name__}...")
+
+                for _ in range(num_games):
+                    board = [['O' for _ in range(7)] for _ in range(6)]
+                    current_player = 'Y'
+                    game = ConnectFour(board, current_player)
+
+                    while True:
+                        if current_player == 'Y':
+                            move = algo1(game)  # Call Player Y's algorithm
+                        else:
+                            move = algo2(game)  # Call Player R's algorithm
+
+                        if move is None:  # Check for None move
+                            print(f"Warning: {current_player} returned None, skipping turn.")
+                            break  # Skip the turn or handle appropriately
+
+                        game.make_move(move, current_player)
+
+                        if game.check_win():
+                            results[algo1.__name__] += 1 if current_player == 'Y' else 0
+                            break
+                        if game.is_draw():
+                            break
+
+                        current_player = 'R' if current_player == 'Y' else 'Y'
+
+    print("Tournament Results:")
+    for algo, wins in results.items():
+        print(f"{algo}: {wins} wins")
+
+
+
+def mc_algorithm(game):
+    return monte_carlo_search(game, 100, 'None')
+
+def uct_algorithm(game):
+    return uct(game, 100, 'Y', 'None')
+
+
+
 def main():
+    
+    
+# And then in your main section:
+    algorithms = [
+        random_move_selection,
+        mc_algorithm,
+        uct_algorithm
+    ]
+
+    run_tournament(algorithms, 100)  # Run the tournament with 10 games per matchup
+    
     if len(sys.argv) != 4:
         print("Usage: python connectFour.py <input_file> <verbosity> <num_simulations>")
         return
