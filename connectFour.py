@@ -137,8 +137,8 @@ def monte_carlo_search(game, num_simulations, verbosity):
 
 
 def uct(game, UCT, numSimulation, current_player, verbosity):
-
-    return UCT.rollout(game, numSimulation, current_player, verbosity)
+    move = UCT.rollout(game, numSimulation, current_player, verbosity)
+    return move if move is not None else -1  # Default move if None
 
 
 def main():
