@@ -4,7 +4,6 @@ from collections import defaultdict
 import sys
 import random
 import math
-from UCT import UCTree
 
 class ConnectFour:
     def __init__(self, board, current_player):
@@ -136,10 +135,80 @@ def monte_carlo_search(game, num_simulations, verbosity):
     print(f"FINAL Move selected: {best_move + 1}")
 
 
-def uct(game, UCT, numSimulation, current_player, verbosity):
-    move = UCT.rollout(game, numSimulation, current_player, verbosity)
-    return move if move is not None else -1  # Default move if None
+def uct(game, numSimulation, current_player, verbosity= "Verbose", c=math.sqrt(2)) :
+    win_count = defaultdict(int)
+    vist_count = defaultdict(int)
 
+    # Run though simulation
+    for i in range(numSimulation):
+        clonedGame = game.clone()
+        path = []
+        initialMove = None
+
+        # Till no moves/terminal
+        while True:
+            legalMoves = clonedGame.valid_moves()
+
+            if not legalMoves:
+                break
+            
+            # Check if all legal moves tried
+            if all(move in vist_count for move in legalMoves):
+                totalVists = sum(vist_count[move] for move in legalMoves)
+                ucbScores = {}
+
+                #  Cacl UCB score
+                for move in legalMoves:
+                    winRate = win_count[move] / vist_count[move] if vist_count[move] > 0 else 0
+                    ucbScore = winRate + c * math.sqrt(math.log(totalVists)/ (1+ vist_count[move]))
+                    ucbScores[move] = ucbScore
+
+                    # Print UCB value
+                    if verbosity == "Verbose":
+                        print(f"V{move+1}: {ucbScore:.2f}" )
+                    # Chose the move with the highest UCB score
+                    move = max(ucbScores, key=ucbScores.get)
+            else:
+                # Choose random unexplored move
+                unexploredMoves = [move for move in legalMoves if move not in vist_count]
+                move = random.choice(unexploredMoves)
+            
+            # Track the path taken 
+            path.append((move,clonedGame.current_player))
+            if initialMove is None:
+                initialMove = move
+            # Make move
+            clonedGame.make_move(move, clonedGame.current_player)
+            if clonedGame.check_win() or clonedGame.is_draw():
+                break
+            # Next players turn
+            clonedGame.current_player = 'R' if clonedGame.current_player == 'Y' else 'Y'
+
+        # After simulations 
+        result = 1 if clonedGame.current_player == 'Y' else -1 if clonedGame.check_win() else 0
+
+        # Update 
+        for move, player in path:
+            vist_count[move] +=1
+            win_count[move] += result if player == 'Y' else -result
+        # Print
+        if verbosity == "Verbose":
+            print(f"TERMINAL NODE VALUE: {result}")
+
+            for move in win_count:
+                print(f"Updated values: wi: {win_count[move]}, ni: {vist_count[move]}")
+    # Cal final values for each colum and get best move
+    scores = [win_count[col] / vist_count[col] if vist_count[col] > 0 else "Null" for col in range(7)]    
+    bestMove = max(range(7), key=lambda col: scores[col] if scores[col] != "Null" else float('-inf'))
+
+    # Print if verbose
+    if verbosity in ["Verbose", "Brief"]:
+        for col in range(7):
+            print(f"Column {col+1}: {scores[col]:.3f}")
+    print(f"FINAL Move selected: {bestMove+1}")
+
+    # Return best move 
+    return bestMove
 
 def main():
     if len(sys.argv) != 4:
@@ -162,9 +231,8 @@ def main():
         move = monte_carlo_search(game, num_simulations, verbosity)
     elif algorithm == 'UCT':
         print('UCT')
-        UCT = UCTree()
-        move = uct(game, UCT, num_simulations, current_player, verbosity)
-        print(f"FINAL Move selected: {move + 1}")
+        move = uct(game, num_simulations, current_player, verbosity=verbosity)
+
 
 if __name__ == "__main__":
     main()
