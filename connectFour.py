@@ -1,4 +1,4 @@
-#Raul Pallares & Angel Aguayo PA2
+#Raul Pallares & Angel Aguayo & Natasha Rovelli PA2
 
 import sys
 import random
@@ -48,6 +48,22 @@ class ConnectFour:
     def clone(self):
         return ConnectFour([row[:] for row in self.board], self.current_player)
 
+    def simulate_random_game(self):
+        current_player = self.current_player
+        while True:
+            if self.check_win():
+                return 1 if current_player == 'Y' else -1
+            if self.is_draw():
+                return 0
+            legal_moves = self.valid_moves()
+            if not legal_moves:
+                return 0
+            move = random.choice(legal_moves)
+            self.make_move(move, current_player)
+            current_player = 'R' if current_player == 'Y' else 'Y'
+
+
+
 def read_board(file_path):
     with open(file_path, 'r') as f:
         algorithm = f.readline().strip()
@@ -55,9 +71,73 @@ def read_board(file_path):
         board = [list(f.readline().strip()) for _ in range(6)]
     return algorithm, current_player, board
 
+
+
 def random_move_selection(game):
     valid_moves = game.valid_moves()
-    return random.choice(valid_moves)
+    return random.choice(valid_moves) if valid_moves else None
+
+
+
+def monte_carlo_search(game, num_simulations, verbosity):
+    # Initialize statistics for each column
+    win_counts = defaultdict(int)
+    visit_counts = defaultdict(int)
+
+    # Perform the simulations
+    for _ in range(num_simulations):
+        game_clone = game.clone()
+        initial_move = None
+        path = []
+
+        while True:
+            legal_moves = game_clone.valid_moves()
+            if not legal_moves:
+                break
+
+            # Choose a move at random
+            move = random.choice(legal_moves)
+            path.append((move, game_clone.current_player))
+            if initial_move is None:
+                initial_move = move
+
+            # Apply the move
+            game_clone.make_move(move, game_clone.current_player)
+            if game_clone.check_win() or game_clone.is_draw():
+                break
+
+            # Alternate the player
+            game_clone.current_player = 'R' if game_clone.current_player == 'Y' else 'Y'
+
+        # Determine the result
+        result = 1 if game_clone.current_player == 'Y' else -1 if game_clone.check_win() else 0
+
+        # Update statistics along the path
+        for move, player in path:
+            visit_counts[move] += 1
+            win_counts[move] += result if player == 'Y' else -result
+
+        if verbosity == "Verbose":
+            print(f"TERMINAL NODE VALUE: {result}")
+            for move in win_counts:
+                print(f"Updated values: wi: {win_counts[move]}, ni: {visit_counts[move]}")
+
+    # Calculate the final values for each column
+    scores = [win_counts[col] / visit_counts[col] if visit_counts[col] > 0 else "Null" for col in range(7)]
+    best_move = max(range(7), key=lambda col: scores[col] if scores[col] != "Null" else float('-inf'))
+
+    # Print final results based on verbosity
+    if verbosity in ["Verbose", "Brief"]:
+        for col in range(7):
+            print(f"Column {col + 1}: {scores[col]}")
+    print(f"FINAL Move selected: {best_move + 1}")
+
+    
+
+def uct(game):
+    pass
+
+
 
 def main():
     if len(sys.argv) != 4:
@@ -74,15 +154,14 @@ def main():
     if algorithm == 'UR':
         print("UR")
         move = random_move_selection(game)
-        num_simulations = 0
+        print(f"FINAL Move selected: {move + 1}")
     elif algorithm == 'PMCGS':
         print("PMCGS")
-        
-        return
+        move = monte_carlo_search(game, num_simulations, verbosity)
     elif algorithm == 'UCT':
         print('UCT')
+        move = uct(game)
 
-    print(f"FINAL Move selected: {move + 1}")
 
 if __name__ == "__main__":
     main()
