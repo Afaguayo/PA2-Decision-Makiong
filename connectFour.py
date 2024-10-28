@@ -261,10 +261,10 @@ def main():
             
         algos =     [
                         ("UR", random_move_selection, None),
-                        ("PMCGS (500)", monte_carlo_search, 250),
-                        ("PMCGS (10000)", monte_carlo_search, 500),
-                        ("UCT (500)", uct, 250),
-                        ("UCT (10000)", uct, 500)
+                        ("PMCGS (100)", monte_carlo_search, 100),
+                        ("PMCGS (200)", monte_carlo_search, 200),
+                        ("UCT (100)", uct, 100),
+                        ("UCT (200)", uct, 200)
                     ]
 
         results = {firstAlgo[0]: {secondAlgo[0]: {'Wins': 0, 'Losses': 0, 'Draws': 0} for secondAlgo in algos} for firstAlgo in algos}
