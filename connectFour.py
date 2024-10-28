@@ -5,15 +5,18 @@ import sys
 import random
 import math
 
+
 class ConnectFour:
-    def __init__(self, board, current_player):
-        self.board = board
+    def __init__(self, board =None , current_player="R"):
+        self.board = board if board else [['O' for _ in range(7)] for _ in range(6)]
         self.current_player = current_player
 
     def valid_moves(self):
         return [col for col in range(7) if self.board[0][col] == 'O']
 
     def make_move(self, col, player):
+        if col is None:
+            return
         for row in range(5, -1, -1):
             if self.board[row][col] == 'O':
                 self.board[row][col] = player
@@ -75,13 +78,13 @@ def read_board(file_path):
 
 
 
-def random_move_selection(game):
+def random_move_selection(game, numSimulation=None):
     valid_moves = game.valid_moves()
     return random.choice(valid_moves) if valid_moves else None
 
 
 
-def monte_carlo_search(game, num_simulations, verbosity):
+def monte_carlo_search(game, num_simulations, verbosity="None"):
     # Initialize statistics for each column
     win_counts = defaultdict(int)
     visit_counts = defaultdict(int)
@@ -123,6 +126,7 @@ def monte_carlo_search(game, num_simulations, verbosity):
             print(f"TERMINAL NODE VALUE: {result}")
             for move in win_counts:
                 print(f"Updated values: wi: {win_counts[move]}, ni: {visit_counts[move]}")
+        
 
     # Calculate the final values for each column
     scores = [win_counts[col] / visit_counts[col] if visit_counts[col] > 0 else "Null" for col in range(7)]
@@ -132,10 +136,9 @@ def monte_carlo_search(game, num_simulations, verbosity):
     if verbosity in ["Verbose", "Brief"]:
         for col in range(7):
             print(f"Column {col + 1}: {scores[col]}")
-    print(f"FINAL Move selected: {best_move + 1}")
+    return best_move
 
-
-def uct(game, numSimulation, current_player, verbosity= "Verbose", c=math.sqrt(2)) :
+def uct(game, numSimulation, verbosity= "None", c=math.sqrt(2)) :
     win_count = defaultdict(int)
     vist_count = defaultdict(int)
 
@@ -205,94 +208,102 @@ def uct(game, numSimulation, current_player, verbosity= "Verbose", c=math.sqrt(2
     if verbosity in ["Verbose", "Brief"]:
         for col in range(7):
             print(f"Column {col+1}: {scores[col]:.3f}")
-    print(f"FINAL Move selected: {bestMove+1}")
 
     # Return best move 
     return bestMove
 
 
-def run_tournament(algorithms, num_games):
-    results = {algo.__name__: 0 for algo in algorithms}
 
-    for i in range(len(algorithms)):
-        for j in range(len(algorithms)):
-            if i != j:
-                algo1 = algorithms[i]
-                algo2 = algorithms[j]
-                print(f"Testing {algo1.__name__} vs {algo2.__name__}...")
+def tournament(alg01Func,alg02Func, numSimulation1=None, numSimulation2=None):
 
-                for _ in range(num_games):
-                    board = [['O' for _ in range(7)] for _ in range(6)]
-                    current_player = 'Y'
-                    game = ConnectFour(board, current_player)
+    game = ConnectFour(current_player="R")
 
-                    while True:
-                        if current_player == 'Y':
-                            move = algo1(game)  # Call Player Y's algorithm
-                        else:
-                            move = algo2(game)  # Call Player R's algorithm
+    while not game.check_win() and not game.is_draw():
+        if game.current_player =="R":
+            move = alg01Func(game, numSimulation1)
+        else:
+            move = alg02Func(game, numSimulation2)
 
-                        if move is None:  # Check for None move
-                            print(f"Warning: {current_player} returned None, skipping turn.")
-                            break  # Skip the turn or handle appropriately
+        game.make_move(move, game.current_player)
+        game.current_player = 'Y' if game.current_player == 'R' else 'R'
 
-                        game.make_move(move, current_player)
-
-                        if game.check_win():
-                            results[algo1.__name__] += 1 if current_player == 'Y' else 0
-                            break
-                        if game.is_draw():
-                            break
-
-                        current_player = 'R' if current_player == 'Y' else 'Y'
-
-    print("Tournament Results:")
-    for algo, wins in results.items():
-        print(f"{algo}: {wins} wins")
-
-
-
-def mc_algorithm(game):
-    return monte_carlo_search(game, 100, 'None')
-
-def uct_algorithm(game):
-    return uct(game, 100, 'Y', 'None')
-
-
-
+    if game.check_win():
+        return 'R' if game.current_player == 'Y' else 'Y'
+    return 'Draw'
+        
 def main():
-    
-    
-# And then in your main section:
-    algorithms = [
-        random_move_selection,
-        mc_algorithm,
-        uct_algorithm
-    ]
 
-    run_tournament(algorithms, 100)  # Run the tournament with 10 games per matchup
-    
-    if len(sys.argv) != 4:
-        print("Usage: python connectFour.py <input_file> <verbosity> <num_simulations>")
-        return
+    # If 4 parameters passed then want to test a file on algorithm.
+    # Purly Testing 
+    if len(sys.argv) == 4: 
+        input_file = sys.argv[1]
+        verbosity = sys.argv[2]
+        num_simulations = int(sys.argv[3])  # Not used in UR algorithm
 
-    input_file = sys.argv[1]
-    verbosity = sys.argv[2]
-    num_simulations = int(sys.argv[3])  # Not used in UR algorithm
+        algorithm, current_player, board = read_board(input_file)
+        game = ConnectFour(board=board, current_player=current_player)
+        
+        if algorithm == 'UR':
+            print("UR")
+            move = random_move_selection(game)
+            print(f"FINAL Move selected: {move + 1}")
+        elif algorithm == 'PMCGS':
+            print("PMCGS")
+            move = monte_carlo_search(game, num_simulations, verbosity=verbosity)
+            print(f"FINAL Move selected: {move + 1}")
+        elif algorithm == 'UCT':
+            print('UCT')
+            move = uct(game, num_simulations, verbosity=verbosity)
+            print(f"FINAL Move selected: {move + 1}")
+    # Conduct a Tournaments and Evaluation
+    # Round Robin
+    elif len(sys.argv) == 1:
+            
+        algos =     [
+                        ("UR", random_move_selection, None),
+                        ("PMCGS (500)", monte_carlo_search, 250),
+                        ("PMCGS (10000)", monte_carlo_search, 500),
+                        ("UCT (500)", uct, 250),
+                        ("UCT (10000)", uct, 500)
+                    ]
 
-    algorithm, current_player, board = read_board(input_file)
-    game = ConnectFour(board, current_player)
-    
-    if algorithm == 'UR':
-        print("UR")
-        move = random_move_selection(game)
-        print(f"FINAL Move selected: {move + 1}")
-    elif algorithm == 'PMCGS':
-        print("PMCGS")
-        move = monte_carlo_search(game, num_simulations, verbosity)
-    elif algorithm == 'UCT':
-        print('UCT')
-        move = uct(game, num_simulations, current_player, verbosity=verbosity)
+        results = {firstAlgo[0]: {secondAlgo[0]: {'Wins': 0, 'Losses': 0, 'Draws': 0} for secondAlgo in algos} for firstAlgo in algos}
+
+        i = 0 
+        for name1, function1, param1 in algos:
+            print(f"Round-Robin {i} starting...")
+            for name2, function2, param2 in algos:
+                if name1 != name2:
+                    for _ in range(100):
+                        winner = tournament(
+
+                                lambda game, nSim: function1(game) if name1 == "UR" else function1(game, nSim),
+                                lambda game, nSim: function2(game) if name2 == "UR" else function2(game, nSim),
+                                param1,
+                                param2,
+                        )
+
+                        if winner == 'R':
+                            results[name1][name2]['Wins'] +=1
+                            results[name2][name1]['Losses'] +=1
+                        elif winner == 'Y':
+                            results[name2][name1]['Wins'] +=1
+                            results[name1][name2]['Losses'] +=1
+                        else:
+                            results[name1][name2]['Draws'] +=1
+                            results[name2][name1]['Draws'] +=1
+            print(f"Round-Robin  {i} ended")
+            i+=1
+        for alg1_name in results:
+            print(f"\nResults for {alg1_name}:")
+            for alg2_name in results[alg1_name]:
+                match_result = results[alg1_name][alg2_name]
+                print(f"  vs {alg2_name} - Wins: {match_result['Wins']}, Losses: {match_result['Losses']}, Draws: {match_result['Draws']}")
+        
+    else:
+        print("For testing Usage: python connectFour.py <input_file> <verbosity> <num_simulations>")
+        print("or")
+        print("For Tournament Usage: python connectFour.py")
 
 
 if __name__ == "__main__":
